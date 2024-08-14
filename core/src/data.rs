@@ -1,3 +1,4 @@
+#[cfg(feature = "kademlia-rocksdb")]
 use self::rocks_db::RocksDBKey;
 use crate::{
 	network::rpc::Node as RpcNode,
@@ -5,18 +6,22 @@ use crate::{
 };
 use avail_subxt::primitives::Header;
 use codec::{Decode, Encode};
-#[cfg(test)]
+use libp2p::kad::store::RecordStore;
+#[cfg(feature = "memory-db")]
 use mem_db::HashMapKey;
 use serde::{Deserialize, Serialize};
 use sp_core::ed25519;
 
+mod kad_mem_providers;
 mod keys;
-#[cfg(test)]
+#[cfg(feature = "memory-db")]
 mod mem_db;
+#[cfg(feature = "kademlia-rocksdb")]
 mod rocks_db;
 
-#[cfg(test)]
+#[cfg(feature = "memory-db")]
 pub use mem_db::MemoryDB;
+#[cfg(feature = "kademlia-rocksdb")]
 pub use rocks_db::RocksDB;
 
 /// Column family for application state
@@ -25,19 +30,19 @@ pub const APP_STATE_CF: &str = "app_state_cf";
 /// Column family for Kademlia store
 pub const KADEMLIA_STORE_CF: &str = "kademlia_store_cf";
 
-#[cfg(not(test))]
+#[cfg(feature = "kademlia-rocksdb")]
 /// Type of the database key which we can get from the custom key.
 pub trait RecordKey: Into<RocksDBKey> {
 	type Type: Serialize + for<'a> Deserialize<'a> + Encode + Decode;
 }
 
-#[cfg(test)]
+#[cfg(feature = "memory-db")]
 /// Type of the database key which we can get from the custom key.
-pub trait RecordKey: Into<RocksDBKey> + Into<HashMapKey> {
+pub trait RecordKey: Into<HashMapKey> {
 	type Type: Serialize + for<'a> Deserialize<'a> + Encode + Decode;
 }
 
-pub trait Database {
+pub trait Database: RecordStore {
 	/// Puts value for given key into database.
 	/// Key is serialized into database key, value is serialized into type supported by database.
 	fn put<T: RecordKey>(&self, key: T, value: T::Type);

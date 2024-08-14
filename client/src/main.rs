@@ -2,7 +2,7 @@
 
 use crate::cli::CliOpts;
 use avail_light_core::{
-	data::{ClientIdKey, Database, LatestHeaderKey, RocksDB},
+	data::{ClientIdKey, Database, LatestHeaderKey, MemoryDB, RocksDB},
 	network::{
 		p2p::{self},
 		rpc, Network,
@@ -61,7 +61,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 async fn run(
 	cfg: RuntimeConfig,
 	identity_cfg: IdentityConfig,
-	db: RocksDB,
+	db: impl Database,
 	shutdown: Controller<String>,
 	client_id: Uuid,
 	execution_id: Uuid,
@@ -78,7 +78,7 @@ async fn run(
 		Err(eyre!("Bootstrap node list must not be empty. Either use a '--network' flag or add a list of bootstrap nodes in the configuration file"))?
 	}
 
-	let (id_keys, peer_id) = p2p::identity(&cfg.libp2p, db.clone())?;
+	let (id_keys, peer_id) = p2p::identity(&cfg.libp2p, db.clone())?; // Needs to be executed before db init
 
 	let metric_attributes = vec![
 		("version", version.to_string()),
@@ -825,7 +825,13 @@ pub async fn main() -> Result<()> {
 		fs::remove_dir_all(&cfg.avail_path).wrap_err("Failed to remove local state directory")?;
 	}
 
-	let db = RocksDB::open(&cfg.avail_path).expect("Avail Light could not initialize database");
+	let (id_keys, peer_id) = p2p::identity(&cfg.libp2p, db.clone())?;
+
+	let db: Database;
+	#[cfg(feature = "kademlia-rocksdb")]
+	db = RocksDB::open(&cfg.avail_path).expect("Avail Light could not initialize database"); // Generate peerID before this for new init
+	#[cfg(feature = "memory-db")]
+	db = MemoryDB::new(local_id);
 
 	let client_id = db.get(ClientIdKey).unwrap_or_else(|| {
 		let client_id = Uuid::new_v4();

@@ -76,5 +76,6 @@ test-case = "3.2.1"
 [features]
 network-analysis = []
 kademlia-rocksdb = []
+memory-db = []
 crawl = []
-default = []
+default = ["memory-db"]

@@ -26,7 +26,7 @@ mod client;
 pub mod configuration;
 mod event_loop;
 mod kad_mem_providers;
-#[cfg(not(feature = "kademlia-rocksdb"))]
+// #[cfg(not(feature = "kademlia-rocksdb"))]
 mod kad_mem_store;
 mod kad_rocksdb_store;
 use crate::{
@@ -36,7 +36,7 @@ use crate::{
 pub use client::Client;
 pub use event_loop::EventLoop;
 pub use kad_mem_providers::ProvidersConfig;
-#[cfg(not(feature = "kademlia-rocksdb"))]
+// #[cfg(not(feature = "kademlia-rocksdb"))]
 pub use kad_mem_store::MemoryStoreConfig;
 pub use kad_rocksdb_store::ExpirationCompactionFilterFactory;
 pub use kad_rocksdb_store::RocksDBStoreConfig;
